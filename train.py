@@ -1,19 +1,10 @@
 import argparse
-
 from copy import deepcopy
-from itertools import zip_longest
-from collections import Counter
-
-from sklearn.metrics import classification_report, f1_score, roc_auc_score
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
-
-from torch.nn.utils.rnn import pad_sequence
-
-import numpy as np
+import torch.optim as optim
+from sklearn.metrics import classification_report
 
 from models import BiLSTM
 from utils import load_data, pad
@@ -53,7 +44,6 @@ train_word_id_lists, _ = pad(
     train_word_lists, train_lengths, max_len, word2id, PAD, UNK)
 train_tag_id_lists, train_tag_ids = pad(train_tag_lists, train_lengths,
                                         max_len, tag2id, PAD, UNK)
-
 
 dev_word_lists, dev_tag_lists, dev_lengths, _, _, dev_word_size = load_data(
     dataset='dev')
@@ -98,7 +88,6 @@ if args.cuda:
     test_word_id_lists = test_word_id_lists.cuda()
     test_tag_id_lists = test_tag_id_lists.cuda()
 
-
 train_total_step = train_vocab_size // batch_size + 1
 dev_total_step = dev_vocab_size // batch_size + 1
 
@@ -117,9 +106,9 @@ def train(epoch):
     train_pres = []
 
     for batch in range(0, train_vocab_size, batch_size):
-        batch_x = train_word_id_lists[batch:batch+batch_size]
-        batch_y = train_tag_id_lists[batch:batch+batch_size]
-        lengths_batch = train_lengths[batch:batch+batch_size]
+        batch_x = train_word_id_lists[batch:batch + batch_size]
+        batch_y = train_tag_id_lists[batch:batch + batch_size]
+        lengths_batch = train_lengths[batch:batch + batch_size]
 
         # forward
         pres = model(batch_x, lengths_batch)
@@ -140,9 +129,9 @@ def train(epoch):
         val_acc = 0
         val_pres = []
         for batch in range(0, dev_vocab_size, batch_size):
-            batch_x = dev_word_id_lists[batch:batch+batch_size]
-            batch_y = dev_tag_id_lists[batch:batch+batch_size]
-            lengths_batch = dev_lengths[batch:batch+batch_size]
+            batch_x = dev_word_id_lists[batch:batch + batch_size]
+            batch_y = dev_tag_id_lists[batch:batch + batch_size]
+            lengths_batch = dev_lengths[batch:batch + batch_size]
 
             # forward
             pres = model(batch_x, lengths_batch)

@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 
@@ -20,7 +19,7 @@ class BiLSTM(nn.Module):
                               dropout=dropout
                               )
 
-        self.line = nn.Linear(2*hidden_dim, out_dim)
+        self.line = nn.Linear(2 * hidden_dim, out_dim)
 
     def forward(self, data, lengths):
         embedding = self.embedding(data)  # [B, L, embedding_dim]

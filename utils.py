@@ -1,15 +1,13 @@
-from os.path import join
 from functools import reduce
+from os.path import join
 
-import torch
 import numpy as np
+import torch
 
 
 def load_data(path="./ResumeNER", dataset=None):
     assert dataset in ['train', 'dev', 'test']
 
-    word_lists = []
-    tag_lists = []
     with open(join(path, f"{dataset}.char.bmes"), 'r') as f:
         lines = f.read().splitlines()
         lines_np = np.array(lines)
@@ -30,7 +28,7 @@ def load_data(path="./ResumeNER", dataset=None):
         word_lists.append(word_list)
         tag_lists.append(tag_list)
 
-    words = reduce(lambda x, y: x+y, word_lists)
+    words = reduce(lambda x, y: x + y, word_lists)
     word_size = len(words)
 
     word2id = map_(word_lists)
@@ -49,7 +47,7 @@ def load_data(path="./ResumeNER", dataset=None):
 
 
 def map_(lists):
-    items = reduce(lambda x, y: x+y, lists)
+    items = reduce(lambda x, y: x + y, lists)
     items = set(items)
     items = zip(items, range(len(items)))
     items = dict(items)
@@ -62,6 +60,6 @@ def pad(lists, lengths, max_len, map_, PAD, UNK):
     for i, line in enumerate(lists):
         for j, word in enumerate(line):
             id_lists[i][j] = map_.get(word, UNK)
-    items = reduce(lambda x, y: x+y, lists)
+    items = reduce(lambda x, y: x + y, lists)
     ids = [map_.get(i, UNK) for i in items]
     return id_lists, ids
