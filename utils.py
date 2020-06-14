@@ -34,14 +34,11 @@ def load_data(path="./ResumeNER", dataset=None):
     word2id = map_(word_lists)
     tag2id = map_(tag_lists)
 
-    tag2id = sorted(tag2id.items(), key=lambda x: x[1])
-    tag2id = dict(tag2id)
-
     word_tag = list(zip(word_lists, tag_lists))
     word_tag.sort(key=lambda item: len(item[0]), reverse=True)
     word_lists, tag_lists = list(zip(*word_tag))
 
-    lengths = [len(l) for l in word_lists]
+    lengths = [len(line) for line in word_lists]
 
     return word_lists, tag_lists, lengths, word2id, tag2id, word_size
 

@@ -42,15 +42,15 @@ max_len = train_lengths[0]
 
 train_word_id_lists, _ = pad(
     train_word_lists, train_lengths, max_len, word2id, PAD, UNK)
-train_tag_id_lists, train_tag_ids = pad(train_tag_lists, train_lengths,
-                                        max_len, tag2id, PAD, UNK)
+train_tag_id_lists, _ = pad(train_tag_lists, train_lengths,
+                            max_len, tag2id, PAD, UNK)
 
 dev_word_lists, dev_tag_lists, dev_lengths, _, _, dev_word_size = load_data(
     dataset='dev')
 
 dev_word_id_lists, _ = pad(dev_word_lists, dev_lengths,
                            max_len, word2id, PAD, UNK)
-dev_tag_id_lists, dev_tag_ids = pad(
+dev_tag_id_lists, _ = pad(
     dev_tag_lists, dev_lengths, max_len, tag2id, PAD, UNK)
 
 test_word_lists, test_tag_lists, test_lengths, _, _, test_word_size = load_data(
@@ -63,6 +63,7 @@ test_tag_id_lists, test_tag_ids = pad(test_tag_lists, test_lengths,
 
 train_vocab_size = len(train_word_id_lists)
 dev_vocab_size = len(dev_word_id_lists)
+test_vocab_size = len(test_word_id_lists)
 embedding_dim = args.embedding
 hidden_dim = args.hidden
 num_layers = args.num_layers
@@ -90,6 +91,7 @@ if args.cuda:
 
 train_total_step = train_vocab_size // batch_size + 1
 dev_total_step = dev_vocab_size // batch_size + 1
+test_total_step = dev_vocab_size // batch_size + 1
 
 best_model = None
 best_val_loss = float('inf')
@@ -123,11 +125,10 @@ def train(epoch):
         train_acc += acc
         train_pres += pres
 
-    model.eval()
     with torch.no_grad():
+        model.eval()
         val_loss = 0.
         val_acc = 0
-        val_pres = []
         for batch in range(0, dev_vocab_size, batch_size):
             batch_x = dev_word_id_lists[batch:batch + batch_size]
             batch_y = dev_tag_id_lists[batch:batch + batch_size]
@@ -141,7 +142,6 @@ def train(epoch):
 
             val_loss += loss.item()
             val_acc += acc
-            val_pres += pres
 
         if val_loss < best_val_loss:
             print("best model update...")
@@ -150,13 +150,9 @@ def train(epoch):
 
     print("Train, Epoch {}, Loss: {:.4f}, Acc: {:.4f}".format(
         epoch, train_loss / train_total_step, train_acc / train_word_size))
-    # print("Train, Classification report: \n", (classification_report(train_tag_ids, train_pres, labels=list(range(18)), target_names=list(tag2id.keys()))))
-    # print("Train, F1 micro averaging:", (f1_score(train_tag_ids, train_pres, average='micro')))
 
     print("Val, Loss: {:.4f}, Acc: {:.4f}".format(
         val_loss / dev_total_step, val_acc / dev_word_size))
-    # print("Val, Classification report: \n", (classification_report(dev_tag_ids, val_pres, labels=list(range(18)), target_names=list(tag2id.keys()))))
-    # print("Val, F1 micro averaging:", (f1_score(dev_tag_ids, val_pres, average='micro')))
 
 
 def loss_acc(pres, batch_y):
@@ -179,15 +175,28 @@ for epoch in range(args.epochs):
 
 with torch.no_grad():
     best_model.eval()
-    pres = model(test_word_id_lists, test_lengths)
+    test_loss = 0.
+    test_acc = 0
+    test_pres = []
+    for batch in range(0, test_vocab_size, batch_size):
+        batch_x = test_word_id_lists[batch:batch + batch_size]
+        batch_y = test_tag_id_lists[batch:batch + batch_size]
+        lengths_batch = test_lengths[batch:batch + batch_size]
 
-    # loss
-    loss, acc, pres = loss_acc(pres, test_tag_id_lists)
+        # forward
+        pres = best_model(batch_x, lengths_batch)
+
+        # loss
+        loss, acc, pres = loss_acc(pres, batch_y)
+
+        test_loss += loss.item()
+        test_acc += acc
+        test_pres += pres
 
     print("Test, Loss: {:.4f}, Acc: {:.4f}".format(
-        loss.item(), acc / test_word_size))
+        test_loss / test_total_step, test_acc / test_word_size))
     print("Test, Classification report: \n", (classification_report(
-        test_tag_ids, pres, labels=list(range(18)), target_names=list(tag2id.keys()))))
+        test_tag_ids, test_pres, labels=list(range(len(tag2id))), target_names=list(tag2id.keys()))))
     # print("Test, F1 micro averaging:", (f1_score(test_tag_ids, pres, average='micro')))
 
     torch.save(best_model, 'lstm.pt')
